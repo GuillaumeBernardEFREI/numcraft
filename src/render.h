@@ -19,7 +19,7 @@ struct rayResult
   unsigned short color;
   unsigned char skyFactor = 0;
 };
-rayResult ray(Vector3 *rayPos, Vector3 *rayDir,double dayTime=0);
+rayResult ray(Vector3 *rayPos, Vector3 *rayDir,unsigned char animOffset=0);
 Vector3 getSkyColor(Vector3 rayDir, double time);
 unsigned short grayScale(double x,double maxi);
 #endif

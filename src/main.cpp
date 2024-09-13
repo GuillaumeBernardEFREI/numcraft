@@ -43,10 +43,11 @@ struct Player
 
 // render options
 const unsigned char pixelSize = 4;
-
+const double renderDistance=8;
 float fov = 3.83972435439 / 2;
 rayResult cursorRayResult;
 double timeFactor = 16;
+unsigned char animOffset = 0;
 
 // player info
 bool isInventoryOpen = false;
@@ -90,6 +91,8 @@ int get_pixel_pos_from_world_pos(Vector3 *_pos, Player *_player)
 
 void renderFrame(Player *_player, double dayTime, bool stopWithKey, unsigned char *hotBar, unsigned short left = 0, unsigned char top = 0, unsigned short width = 320, unsigned char height = 240)
 {
+  unsigned char ao = animOffset - ((unsigned char)(animOffset*0.25)*4);
+  animOffset++;
   left=min(max(left,0),320);
   top=min(max(top,0),240);
   width=min(left+width,320)-left;
@@ -123,7 +126,7 @@ void renderFrame(Player *_player, double dayTime, bool stopWithKey, unsigned cha
                                           EADK::Keyboard::Key::Var,
                                           EADK::Keyboard::Key::Plus};
   Vector3 cursorDir = {rCos[1] * (xangleReset + (xangleStep * 160 / pixelSize)) + (yangle - (yangleStep * 120 / pixelSize)) * (rSin[1] * rSin[0]) + (rSin[1] * rCos[0]), (yangle - (yangleStep * 120 / pixelSize)) * (rCos[0]) - rSin[0], -rSin[1] * (xangleReset + (xangleStep * 160 / pixelSize)) + (yangle - (yangleStep * 120 / pixelSize)) * (rCos[1] * rSin[0]) + (rCos[1] * rCos[0])};
-  rayResult cursorRayInfo = (ray(&((*_player).position), &cursorDir));
+  rayResult cursorRayInfo = ray(&((*_player).position), &cursorDir,0);
   if (cursorRayInfo.blockId == 0 || cursorRayInfo.distance > 4)
   {
     cursorRayInfo.blockPos[1] = -2;
@@ -199,7 +202,7 @@ void renderFrame(Player *_player, double dayTime, bool stopWithKey, unsigned cha
 
           rayDir = {rCos[1] * xangle + yangle * (rSin[1] * rSin[0]) + (rSin[1] * rCos[0]), (yangle * (rCos[0]) - rSin[0]), -rSin[1] * xangle + yangle * (rCos[1] * rSin[0]) + (rCos[1] * rCos[0])};
           rayDir = rayDir.normalize();
-          rayResult rayInfo = ray((&(*_player).position), &rayDir,dayTime);
+          rayResult rayInfo = ray((&(*_player).position), &rayDir,ao);
           Vector3 color;
           if (rayInfo.blockId != 0)
           {
@@ -209,7 +212,7 @@ void renderFrame(Player *_player, double dayTime, bool stopWithKey, unsigned cha
             }
           }
 
-          if (rayInfo.blockId != 0 && rayInfo.distance < 7)
+          if (rayInfo.blockId != 0 && rayInfo.distance < renderDistance-1)
           {
             if (rayInfo.blockPos[0] == cursorRayInfo.blockPos[0] && rayInfo.blockPos[1] == cursorRayInfo.blockPos[1] && rayInfo.blockPos[2] == cursorRayInfo.blockPos[2])
             {
@@ -224,10 +227,10 @@ void renderFrame(Player *_player, double dayTime, bool stopWithKey, unsigned cha
           }
           else
           {
-            if (rayInfo.blockId != 0 && rayInfo.distance < 8)
+            if (rayInfo.blockId != 0 && rayInfo.distance < renderDistance)
             {
               Vector3 skyColor = getSkyColor(rayDir, dayTime);
-              color = gradient(skyColor, color, (8 - rayInfo.distance));
+              color = gradient(skyColor, color, (renderDistance - rayInfo.distance));
             }
             else
             {

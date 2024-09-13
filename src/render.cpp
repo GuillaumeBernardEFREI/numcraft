@@ -14,17 +14,16 @@
 
 // 1/255 (used to convert 255 -> 1)
 const double inv255=1.0/255.0;
-
+const double renderDistance = 8;
 // render the could if set to true else no
 bool renderCloud=false;
 // find a idea how to make cloud rendering works.
 
 // dda fast voxel alogrithm here
-rayResult ray(Vector3 *rayPos, Vector3 *rayDir,double dayTime)
+rayResult ray(Vector3 *rayPos, Vector3 *rayDir,unsigned char animOffset)
 {
-    unsigned char animOffset=(unsigned char)((unsigned char)(dayTime*4)&0b11);
-
     
+
     rayResult rayInfo;
     Vector3 color=Vector3();
     rayInfo.distance = 0;
@@ -32,9 +31,9 @@ rayResult ray(Vector3 *rayPos, Vector3 *rayDir,double dayTime)
     unsigned char previousBlockId = 0;
     bool isFirstBlock = true;
     bool hasTouchliquid=false;
-    const signed char end[3] = {_round(rayPos->x + rayDir->x * 9),
-                                _round(rayPos->y + rayDir->y * 9),
-                                _round(rayPos->z + rayDir->z * 9)};
+    const signed char end[3] = {_round(rayPos->x + rayDir->x * renderDistance),
+                                _round(rayPos->y + rayDir->y * renderDistance),
+                                _round(rayPos->z + rayDir->z * renderDistance)};
 
     signed char currentBlock[3] = {_round(rayPos->x), _round(rayPos->y), _round(rayPos->z)};
     signed char _currentBlock[3] = {currentBlock[0], currentBlock[1], currentBlock[2]};
