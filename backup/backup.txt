@@ -1,0 +1,123 @@
+inline rayResult ray(Vector3 *rayPos, Vector3 *rayDir)
+{
+  rayResult rayInfo;
+  signed char current_voxel[3] = {
+  (signed char) rayPos->x- (rayPos->x<0),
+  (signed char ) rayPos->y,
+  (signed char) rayPos->z-(rayPos->z<0)
+    };
+
+    signed char last_voxel[3] = {
+            (signed char) (rayPos->x + rayDir->x * 8.f) - ((rayPos->x + rayDir->x * 8.f) < 0),
+            (signed char ) (rayPos->y + rayDir->y * 8.f) - ((rayPos->y + rayDir->y * 8.f) < 0),
+            (signed char ) (rayPos->z + rayDir->z * 8.f) - ((rayPos->z + rayDir->z * 8.f) < 0)
+    };
+
+    signed char stepX = (rayDir->x >= 0) ? 1 : -1; // correct
+    signed char stepY = (rayDir->y >= 0) ? 1 : -1; // correct
+    signed char stepZ = (rayDir->z >= 0) ? 1 : -1; // correct
+
+    double next_voxel_boundary_x = (current_voxel[0] + stepX) * 1; // correct
+    double next_voxel_boundary_y = (current_voxel[1] + stepY) * 1; // correct
+    double next_voxel_boundary_z = (current_voxel[2] + stepZ) * 1; // correct
+
+    double tMaxX = (rayDir->x != 0) ? (next_voxel_boundary_x - rayPos->x) / rayDir->x : 2000000; //
+    double tMaxY = (rayDir->y != 0) ? (next_voxel_boundary_y - rayPos->y) / rayDir->y : 2000000; //
+    double tMaxZ = (rayDir->z != 0) ? (next_voxel_boundary_z - rayPos->z) / rayDir->z : 2000000; //
+
+    double tDeltaX = (rayDir->x!= 0) ? 1 / rayDir->x * stepX : 2000000;
+    double tDeltaY = (rayDir->y != 0) ? 1 / rayDir->y * stepY : 2000000;
+    double tDeltaZ = (rayDir->z != 0) ? 1 / rayDir->z * stepZ : 2000000;
+
+    unsigned char face=0;
+    rayInfo.distance=9;
+    rayInfo.blockId=0;
+    rayInfo.blockPos[0]=0;
+    rayInfo.blockPos[1]=-2;
+    rayInfo.blockPos[2]=0;
+    while (!(last_voxel[0] == current_voxel[0] && last_voxel[1] == current_voxel[1] && last_voxel[2] == current_voxel[2])) {
+        if (tMaxX < tMaxY) {
+            if (tMaxX < tMaxZ) {
+                current_voxel[0] += stepX;
+                if (current_voxel[0]<=-32 || current_voxel[0]>31){
+                  return rayInfo;
+                }
+                face=(stepX==1);
+                tMaxX += tDeltaX;
+            } else {
+                current_voxel[2] += stepZ;
+                if (current_voxel[2]<=-32 || current_voxel[2]>31){
+                  return rayInfo;
+                }
+                face=4+(stepZ==1);
+                tMaxZ += tDeltaZ;
+            }
+        } else {
+            if (tMaxY < tMaxZ) {
+                current_voxel[1] += stepY;
+                if (current_voxel[1]<0 || current_voxel[1]>15){
+                  return rayInfo;
+                }
+                face=2+(stepY==1);
+                tMaxY += tDeltaY;
+            } else {
+                current_voxel[2] += stepZ;
+                if (current_voxel[2]<=-32 || current_voxel[2]>31){
+                  return rayInfo;
+                }
+                face=4+(stepZ==1);
+                tMaxZ += tDeltaZ;
+            }
+            
+            }
+            signed char blockPos[3]={current_voxel[0]-(stepX==-1),
+            current_voxel[1]-(stepY==-1),
+            current_voxel[2]-(stepZ==-1)};
+            unsigned char blockId=getBlockFromWorld(blockPos);
+            if(blockId!=0){
+              unsigned char uv[2];
+              double pos[3];
+              
+              if(face==0 || face==1){ 
+
+              double m = (stepX==1)? ((1+blockPos[0]-rayPos->x)*tDeltaX) : -((blockPos[0]-rayPos->x)*tDeltaX);
+              rayInfo.distance=m;
+              pos[0]=rayDir->x*m;
+              pos[1]=rayDir->y*m,
+              pos[2]=rayDir->z*m;
+              uv[0] = (unsigned char)(((pos[2] < 0) + pos[2] - (double)((int)pos[2])) * 8);
+              uv[1] = (unsigned char)((pos[1] - (double)((int)pos[1])) * 8);
+            }
+            else if (face==2 || face==3)
+            {
+              double m = (stepY==1)? ((1+blockPos[1]-rayPos->y)*tDeltaY) : -((blockPos[1]-rayPos->y)*tDeltaY);
+              rayInfo.distance=m;
+              pos[0]=rayDir->x*m;
+              pos[1]=rayDir->y*m,
+              pos[2]=rayDir->z*m;
+              uv[0] = (unsigned char)(((pos[0] < 0) + pos[0] - (double)((int)pos[0])) * 8);
+              uv[1] = (unsigned char)(((pos[2] < 0) + pos[2] - (double)((int)pos[2])) * 8);
+            }
+            else{
+              double m = (stepZ==1)? ((1+blockPos[2]-rayPos->z)*tDeltaZ) : -((blockPos[2]-rayPos->z)*tDeltaZ);
+              rayInfo.distance=m;
+              pos[0]=rayDir->x*m;
+              pos[1]=rayDir->y*m,
+              pos[2]=rayDir->z*m;
+              uv[0] = (unsigned char)(((pos[0] < 0) + pos[0] - (double)((int)pos[0])) * 8);
+              uv[1] = (unsigned char)((pos[1] - (double)((int)pos[1])) * 8);
+            }
+              rayInfo.blockPos[0]=blockPos[0];
+              rayInfo.blockPos[1]=blockPos[1];
+              rayInfo.blockPos[2]=blockPos[2];
+              rayInfo.blockId=blockId;
+              rayInfo.color=getPixelFromTexture(blockId,uv[0],uv[1],face);
+              //rayInfo.color=0b1111100000000000;
+              return rayInfo;
+
+            }
+    }
+    
+    return rayInfo;
+
+}
